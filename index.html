@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>라이어게임 모바일웹</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <style>
+    .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .card-shadow { box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+    .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .btn-primary:hover { background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%); }
+    .timer-pulse { animation: pulse 1s infinite; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div class="container mx-auto max-w-md p-4">
+    <div class="bg-white rounded-2xl card-shadow p-6 min-h-screen" id="app">
+      <!-- 동적으로 화면이 바뀝니다 -->
+    </div>
+  </div>
+
+  <script>
+    // ----------- 샘플 데이터 -----------
+    const categories = [
+      "동물", "음식", "나라", "스포츠", "직업", "전자제품",
+      "한국가수", "한국영화", "해외영화", "만화", "한국배우", "한국드라마"
+    ];
+    
+    const words = {
+      "음식": ["김치찌개", "비빔밥", "떡볶이", "삼겹살", "갈비", "된장찌개", "냉면", "불고기", "삼계탕", "치킨",
+        "라면", "순두부", "감자탕", "파전", "닭갈비", "잡채", "수제비", "콩나물국밥", "오징어볶음", "제육볶음"
+      ],
+      "동물": ["호랑이", "강아지", "고양이", "기린", "코끼리", "사자", "판다", "악어", "토끼", "곰",
+        "말", "펭귄", "돼지", "소", "고래", "늑대", "여우", "다람쥐", "캥거루", "돌고래"
+      ],
+      "나라": ["대한민국", "미국", "중국", "일본", "영국", "프랑스", "독일", "이탈리아", "스페인", "러시아",
+        "브라질", "인도", "호주", "캐나다", "멕시코", "태국", "베트남", "필리핀", "싱가포르", "말레이시아"
+      ],
+      "스포츠": ["축구", "야구", "농구", "배구", "테니스", "골프", "수영", "육상", "체조", "태권도",
+        "복싱", "레슬링", "유도", "배드민턴", "탁구", "스키", "스케이트", "사이클", "양궁", "펜싱"
+      ],
+      "직업": ["의사", "간호사", "교사", "경찰", "소방관", "변호사", "판사", "요리사", "디자이너", "개발자",
+        "기자", "작가", "화가", "가수", "배우", "운동선수", "파일럿", "승무원", "건축가", "엔지니어"
+      ],
+      "전자제품": ["스마트폰", "노트북", "태블릿", "텔레비전", "냉장고", "세탁기", "에어컨", "전자레인지", "드라이기", "청소기",
+        "카메라", "헤드폰", "스피커", "게임기", "프린터", "모니터", "키보드", "마우스", "충전기", "이어폰"
+      ],
+      "한국가수": ["BTS", "블랙핑크", "아이유", "송가인", "임영웅", "지코", "마마무", "레드벨벳", "트와이스", "세븐틴",
+        "뉴진스", "에스파", "아이브", "르세라핌", "잇지", "엔하이픈", "스트레이키즈", "아이들", "오마이걸", "선미"
+      ],
+      "한국영화": ["기생충", "극한직업", "신과함께", "부산행", "택시운전사", "1987", "암살", "명량", "국제시장", "베테랑",
+        "실미도", "태극기휘날리며", "친구", "올드보이", "악마를보았다", "곡성", "아가씨", "봄날은간다", "시인의사랑", "타워"
+      ],
+      "해외영화": ["어벤져스", "타이타닉", "아바타", "라이온킹", "겨울왕국", "토이스토리", "해리포터", "반지의제왕", "스타워즈", "트랜스포머",
+        "쥬라기공원", "인셉션", "인터스텔라", "다크나이트", "아이언맨", "스파이더맨", "배트맨", "슈퍼맨", "원더우먼", "블랙팬서"
+      ],
+      "만화": ["원피스", "나루토", "드래곤볼", "슬램덩크", "명탐정코난", "도라에몽", "포켓몬", "진격의거인", "데스노트", "원펀맨",
+        "귀멸의칼날", "주술회전", "체인소맨", "나의히어로아카데미아", "킹덤", "헌터헌터", "블리치", "요괴워치", "세일러문", "에반게리온"
+      ],
+      "한국배우": ["송강호", "최민식", "황정민", "이병헌", "정우성", "조인성", "현빈", "원빈", "강동원", "이정재",
+        "전지현", "김태희", "송혜교", "한효주", "수지", "아이유", "박신혜", "박보영", "김고은", "김태리"
+      ],
+      "한국드라마": ["오징어게임", "킹덤", "사랑의불시착", "도깨비", "태양의후예", "시그널", "스카이캐슬", "미스터션샤인", "이상한변호사우영우", "사이코지만괜찮아",
+        "호텔델루나", "응답하라1988", "겨울연가", "대장금", "주몽", "선덕여왕", "별에서온그대", "상속자들", "시크릿가든", "커피프린스"
+      ]
+    };
+    
+    // 빈 카테고리 채우기
+    for (const c of categories) {
+      if (!words[c]) {
+        words[c] = Array.from({length: 20}, (_, i) => `${c}제시어${i+1}`);
+      }
+    }
+
+    // ----------- 상태 변수 -----------
+    let state = {
+      step: "login",
+      name: "",
+      team: "",
+      round: 1,
+      teams: Array.from({length: 12}, (_,i)=>({ name: `${i+1}조`, score: 0 })),
+      currentCategory: "",
+      votedCategory: "",
+      teamVotes: Array(6).fill(""),
+      categoryVotes: Array(12).fill(0),
+      selectedWord: "",
+      liarTeam: 0,
+      describes: Array.from({length: 6},()=>[]),
+      currentDescribeIndex: 0,
+      describeRound: 1,
+      describeTimer: 90,
+      voteResults: Array(6).fill(0),
+      selectedLiar: null,
+      liarAnswer: "",
+      roundScores: [],
+      resultShown: false,
+      userTeamIndex: 0,
+      userIsLiar: false,
+      roundResults: [],
+      timerInterval: null
+    };
+
+    // ----------- 화면 그리기 함수 -----------
+    function render() {
+      const el = document.getElementById("app");
+      switch(state.step) {
+        case "login": return renderLogin(el);
+        case "lobby": return renderLobby(el);
+        case "voteCategory": return renderVoteCategory(el);
+        case "showWord": return renderShowWord(el);
+        case "describe": return renderDescribe(el);
+        case "voteLiar": return renderVoteLiar(el);
+        case "liarAnswer": return renderLiarAnswer(el);
+        case "score": return renderScore(el);
+        case "result": return renderResult(el);
+      }
+    }
+
+    // ---------- 화면별 컴포넌트 ----------
+    function renderLogin(el) {
+      el.innerHTML = `
+        <div class="text-center mb-8">
+          <div class="gradient-bg text-white rounded-2xl p-6 mb-6">
+            <i class="fas fa-gamepad text-4xl mb-4"></i>
+            <h1 class="text-3xl font-bold">라이어게임</h1>
+            <p class="text-lg opacity-90 mt-2">120명이 함께하는 대규모 게임</p>
+          </div>
+        </div>
+        
+        <div class="space-y-6">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+              <i class="fas fa-user mr-2"></i>본명
+            </label>
+            <input 
+              class="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg" 
+              id="name" 
+              placeholder="이름을 입력하세요" 
+              maxlength="8"
+            >
+          </div>
+          
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">
+              <i class="fas fa-users mr-2"></i>조 선택
+            </label>
+            <select id="team" class="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg">
+              ${Array.from({length:12}).map((_,i)=>`
+                <option value="${i+1}">${i+1}조 (${i<6?'1라운드':'2라운드'})</option>
+              `).join("")}
+            </select>
+          </div>
+          
+          <button class="w-full btn-primary text-white font-bold py-4 px-6 rounded-xl text-lg transition-all duration-200 hover:scale-105" id="loginBtn">
+            <i class="fas fa-play mr-2"></i>게임 참여하기
+          </button>
+          
+          <div class="bg-blue-50 rounded-xl p-4 text-center text-blue-700">
+            <div class="flex items-center justify-center mb-2">
+              <i class="fas fa-info-circle mr-2"></i>
+              <span class="font-semibold">게임 정보</span>
+            </div>
+            <div class="text-sm space-y-1">
+              <div>• 120명, 12개조 자동 배정</div>
+              <div>• 각 라운드 6개조(60명)씩 진행</div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.getElementById("loginBtn").onclick = () => {
+        const name = document.getElementById("name").value.trim();
+        const team = document.getElementById("team").value;
+        if (!name) return alert("이름을 입력하세요.");
+        state.name = name;
+        state.team = team;
+        state.userTeamIndex = parseInt(team,10)-1;
+        state.round = (state.userTeamIndex < 6) ? 1 : 2;
+        state.step = "lobby";
+        render();
+      };
+    }
+
+    function renderLobby(el) {
+      el.innerHTML = `
+        <div class="text-center mb-8">
+          <div class="gradient-bg text-white rounded-2xl p-6 mb-6">
+            <i class="fas fa-home text-3xl mb-3"></i>
+            <h1 class="text-2xl font-bold">메인 로비</h1>
+          </div>
+        </div>
+        
+        <div class="space-y-6">
+          <div class="bg-gray-50 rounded-xl p-4">
+            <div class="flex items-center justify-between">
+              <span class="text-gray-600">참가자:</span>
+              <span class="font-bold text-lg">${state.name}</span>
+            </div>
+            <div class="flex items-center justify-between mt-2">
+              <span class="text-gray-600">소속 조:</span>
+              <span class="font-bold text-lg text-blue-600">${state.team}</span>
+            </div>
+          </div>
+          
+          <div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl p-4">
+            <div class="flex items-center mb-2">
+              <i class="fas fa-trophy mr-2"></i>
+              <span class="font-bold text-lg">${state.round}라운드</span>
+            </div>
+            <div class="text-sm opacity-90">
+              ${state.round==1?'1~6':'7~12'}조 입장 (총 60명)
+            </div>
+          </div>
+          
+          <button class="w-full btn-primary text-white font-bold py-4 px-6 rounded-xl text-lg transition-all duration-200 hover:scale-105" id="startBtn">
+            <i class="fas fa-vote-yea mr-2"></i>카테고리 투표 시작
+          </button>
+          
+          <div class="bg-gray-50 rounded-xl p-4">
+            <div class="text-sm text-gray-600 mb-3 flex items-center">
+              <i class="fas fa-list mr-2"></i>조 편성 현황
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              ${state.teams.map((t,i)=>`
+                <div class="bg-white px-3 py-2 rounded-lg text-center text-sm font-medium ${i === state.userTeamIndex ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}">${t.name}</div>
+              `).join("")}
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.getElementById("startBtn").onclick = () => {
+        state.step = "voteCategory";
+        render();
+      };
+    }
+
+    function renderVoteCategory(el) {
+      el.innerHTML = `
+        <div class="text-center mb-8">
+          <div class="gradient-bg text-white rounded-2xl p-6 mb-6">
+            <i class="fas fa-vote-yea text-3xl mb-3"></i>
+            <h1 class="text-2xl font-bold">카테고리 투표</h1>
+          </div>
+        </div>
+        
+        <div class="space-y-6">
+          <div class="grid grid-cols-2 gap-3" id="categoryList">
+            ${categories.map(c=>`
+              <div class="category-item p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 hover:scale-105 text-center font-medium ${state.votedCategory===c ? 'border-blue-500 bg-blue-500 text-white' : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300'}" data-cat="${c}">
+                <i class="fas fa-tag mb-2"></i>
+                <div>${c}</div>
+              </div>
+            `).join("")}
+          </div>
+          
+          <button class="w-full btn-primary text-white font-bold py-4 px-6 rounded-xl text-lg transition-all duration-200 hover:scale-105 ${!state.votedCategory ? 'opacity-50 cursor-not-allowed' : ''}" id="voteCatBtn" ${!state.votedCategory?"disabled":""}>
+            <i class="fas fa-check mr-2"></i>투표 완료
+          </button>
+          
+          <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-yellow-800">
+            <div class="flex items-center mb-2">
+              <i class="fas fa-info-circle mr-2"></i>
+              <span class="font-semibold">안내</span>
+            </div>
+            <div class="text-sm">각 조가 투표한 카테고리가 반영됩니다</div>
+          </div>
+        </div>
+      `;
+      
+      document.querySelectorAll(".category-item").forEach(cat=>{
+        cat.onclick = ()=> {
+          state.votedCategory = cat.dataset.cat;
+          render();
+        }
+      });
+      
+      document.getElementById("voteCatBtn").onclick = () => {
+        if (!state.votedCategory) return;
+        state.currentCategory = state.votedCategory;
+        state.step = "showWord";
+        
+        // 라이어 조 랜덤 선정
+        const firstTeamIdx = state.round===1?0:6;
+        state.liarTeam = firstTeamIdx + Math.floor(Math.random()*6);
+        
+        // 제시어 랜덤 선정
+        const catWords = words[state.currentCategory];
+        state.selectedWord = catWords[Math.floor(Math.random()*catWords.length)];
+        state.userIsLiar = (state.userTeamIndex === state.liarTeam);
+        render();
+      };
+    }
+
+    function renderShowWord(el) {
+      el.innerHTML = `
+        <div class="text-center mb-8">
+          <div class="gradient-bg text-white rounded-2xl p-6 mb-6">
+            <i class="fas fa-eye text-3xl mb-3"></i>
+            <h1 class="text-2xl font-bold">제시어 공개</h1>
+          </div>
+        </div>
+        
+        <div class="space-y-6">
+          <div class="${state.userIsLiar ? 'bg-red-100 border-red-300 text-red-800' : 'bg-green-100 border-green-300 text-green-800'} border-2 rounded-xl p-6 text-center">
+            <div class="text-2xl mb-4">
+              ${state.userIsLiar ? '<i class="fas fa-user-secret"></i>' : '<i class="fas fa-lightbulb"></i>'}
+            </div>
+            <div class="text-lg font-bold">
+              ${state.userIsLiar
+                ? `당신의 조는 "라이어"입니다.<br>제시어가 공개되지 않습니다!`
+                : `제시어: ${state.selectedWord}`
+              }
+            </div>
+          </div>
+          
+          <button class="w-full btn-primary text-white font-bold py-4 px-6 rounded-xl text-lg transition-all duration-200 hover:scale-105" id="goDescribeBtn">
+            <i class="fas fa-comments mr-2"></i>설명 단계 시작
+          </button>
+          
+          <div class="bg-gray-50 rounded-xl p-4 text-center text-gray-600">
+            <i class="fas fa-info-circle mr-2"></i>
+            <span class="text-sm">${state.liarTeam+1}조가 라이어 조입니다</span>
+          </div>
+        </div>
+      `;
+      
+      document.getElementById("goDescribeBtn").onclick = () => {
+        state.step = "describe";
+        state.currentDescribeIndex = 0;
+        state.describeRound = 1;
+        state.describes = Array.from({length: 6},()=>[]);
+        state.describeTimer = 90;
+        render();
+        startDescribeTimer();
+      };
+    }
+
+    function renderDescribe(el) {
+      const tIdx = state.userTeamIndex % 6;
+      const myTurn = (state.currentDescribeIndex % 6) === tIdx;
+      
+      el.innerHTML = `
+        <div class="text-center mb-8">
+          <div class="gradient-bg text-white rounded-2xl p-6 mb-6">
+            <i class="fas fa-comments text-3xl mb-3"></i>
+            <h1 class="text-2xl font-bold">설명 입력 (${state.describeRound}회차)</h1>
+          </div>
+        </div>
+        
+        <div class="space-y-6">
+          <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-yellow-800">
+            <div class="text-sm">조별로 1명씩 돌아가며 90초 이내 설명 작성</div>
+          </div>
+          
+          <div class="text-center">
+            <div class="timer-pulse text-3xl font-bold text-red-500" id="timer">
+              ${state.describeTimer}초
+            </div>
+          </div>
+          
+          <div class="space-y-4">
+            <input 
+              class="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg ${myTurn ? '' : 'bg-gray-100'}" 
+              id="descInput" 
+              maxlength="24" 
+              placeholder="설명(힌트)을 입력하세요" 
+              ${myTurn ? "" : "disabled"}
+            >
+            
+            <button class="w-full btn-primary text-white font-bold py-4 px-6 rounded-xl text-lg transition-all duration-200 hover:scale-105 ${myTurn ? '' : 'opacity-50 cursor-not-allowed'}" id="descBtn" ${myTurn ? "" : "disabled"}>
+              <i class="fas fa-paper-plane mr-2"></i>입력 완료
+            </button>
+          </div>
+          
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-blue-800">
+            <div class="text-sm">
+              <strong>입력 예시:</strong> "국물요리예요", "동물이 등장해요" 등
+            </div>
+          </div>
+          
+          <div class="bg-gray-50 rounded-xl p-4">
+            <div class="font-semibold mb-3 flex items-center">
+              <i class="fas fa-history mr-2"></i>이전 설명
+            </div>
+            <div class="space-y-2">
+              ${state.describes.flat().map((d,i)=>`
+                <div class="bg-white p-3 rounded-lg text-sm">
+                  <span class="font-medium text-blue-600">${i+1+((state.round-1)*6)}조:</span>
+                  <span class="ml-2">${d || "(미입력)"}</span>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.getElementById("timer").innerText = `${state.describeTimer}초`;
+      
+      if (myTurn) {
+        document.getElementById("descBtn").onclick = () => {
+          const desc = document.getElementById("descInput").value.trim();
+          state.describes[tIdx][state.describeRound-1] = desc || "(패스)";
+          moveToNextDescribe();
+        };
+      }
+    }
+
+    function moveToNextDescribe() {
+      clearInterval(state.timerInterval);
+      state.currentDescribeIndex++;
+      state.describeTimer = 90;
+      
+      if (state.currentDescribeIndex >= 6*state.describeRound) {
+        if (state.describeRound < 2) {
+          state.describeRound++;
+          state.currentDescribeIndex = 0;
+          render();
+          startDescribeTimer();
+        } else {
+          state.step = "voteLiar";
+          render();
+        }
+      } else {
+        render();
+        startDescribeTimer();
+      }
+    }
+
+    function startDescribeTimer() {
+      state.timerInterval = setInterval(()=>{
+        state.describeTimer--;
+        const timerEl = document.getElementById("timer");
+        if (timerEl) {
+          timerEl.innerText = `${state.describeTimer}초`;
+        }
+        if (state.describeTimer <= 0) {
+          clearInterval(state.timerInterval);
+          moveToNextDescribe();
+        }
+      }, 1000);
+    }
+
+    function renderVoteLiar(el) {
+      el.innerHTML = `
+        <div class="text-center mb-8">
+          <div class="gradient-bg text-white rounded-2xl p-6 mb-6">
+            <i class="fas fa-search text-3xl mb-3"></i>
+            <h1 class="text-2xl font-bold">라이어 조 투표</h1>
+          </div>
+        </div>
+        
+        <div class="space-y-6">
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-blue-800">
+            <div class="text-sm">설명을 바탕으로 라이어 조를 1개 투표하세요</div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-3" id="liarVoteList">
+            ${Array.from({length:6}).map((_,i)=>`
+              <div class="p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 hover:scale-105 text-center font-medium ${state.selectedLiar===i ? 'border-red-500 bg-red-500 text-white' : 'border-gray-200 bg-white text-gray-700 hover:border-red-300'}" data-team="${i}">
+                <i class="fas fa-users mb-2"></i>
+                <div>${i+1+((state.round-1)*6)}조</div>
+              </div>
+            `).join("")}
+          </div>
+          
+          <button class="w-full btn-primary text-white font-bold py-4 px-6 rounded-xl text-lg transition-all duration-200 hover:scale-105 ${state.selectedLiar===null ? 'opacity-50 cursor-not-allowed' : ''}" id="liarVoteBtn" ${state.selectedLiar===null?"disabled":""}>
+            <i class="fas fa-check mr-2"></i>투표 완료
+          </button>
+          
+          <div class="bg-gray-50 rounded-xl p-4">
+            <div class="font-semibold mb-3 flex items-center">
+              <i class="fas fa-list mr-2"></i>설명 로그
+            </div>
+            <div class="space-y-2">
+              ${state.describes.map((d,i)=>`
+                <div class="bg-white p-3 rounded-lg text-sm">
+                  <span class="font-medium text-blue-600">${i+1+((state.round-1)*6)}조:</span>
+                  <span class="ml-2">${d.join(" / ")}</span>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+          
+          <div class="bg-gray-50 rounded-xl p-4">
+            <div class="font-semibold mb-3 flex items-center">
+              <i class="fas fa-chart-bar mr-2"></i>투표 결과(가상)
+            </div>
+            <div class="space-y-2">
+              ${renderVoteBar()}
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.querySelectorAll("#liarVoteList div").forEach(btn=>{
+        btn.onclick = ()=>{
+          state.selectedLiar = parseInt(btn.dataset.team,10);
+          render();
+        };
+      });
+      
+      document.getElementById("liarVoteBtn").onclick = ()=>{
+        if (state.selectedLiar === null) return;
+        state.voteResults = Array(6).fill(0).map(()=>Math.floor(Math.random()*10));
+        state.voteResults[state.liarTeam%6] += 10;
+        state.step = "liarAnswer";
+        render();
+      }
+    }
+
+    function renderVoteBar() {
+      const max = Math.max(...state.voteResults, 1);
+      return state.voteResults.map((v,i)=>`
+        <div class="space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-medium">${i+1+((state.round-1)*6)}조</span>
+            <span class="text-sm font-bold">${v}표</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2">
+            <div class="h-2 rounded-full ${v===max ? 'bg-red-500' : 'bg-blue-500'}" style="width: ${v/max*100}%"></div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderLiarAnswer(el) {
+      const liarIdx = state.voteResults.indexOf(Math.max(...state.voteResults));
+      const isUserLiar = state.userIsLiar;
+      
+      el.innerHTML = `
+        <div class="text-center mb-8">
+          <div class="gradient-bg text-white rounded-2xl p-6 mb-6">
+            <i class="fas fa-question-circle text-3xl mb-3"></i>
+            <h1 class="text-2xl font-bold">라이어 맞히기</h1>
+          </div>
+        </div>
+        
+        <div class="space-y-6">
+          <div class="bg-red-100 border border-red-300 rounded-xl p-4 text-red-800">
+            <div class="text-center">
+              <i class="fas fa-user-secret text-2xl mb-2"></i>
+              <div class="font-bold">${liarIdx+1+((state.round-1)*6)}조가 라이어로 선정되었습니다</div>
+            </div>
+          </div>
+          
+          ${isUserLiar ? `
+            <div class="space-y-4">
+              <input 
+                class="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg" 
+                id="liarAnsInput" 
+                placeholder="제시어를 맞혀보세요" 
+                maxlength="20"
+              >
+              <button class="w-full btn-primary text-white font-bold py-4 px-6 rounded-xl text-lg transition-all duration-200 hover:scale-105" id="liarAnsBtn">
+                <i class="fas fa-paper-plane mr-2"></i>정답 제출
+              </button>
+            </div>
+          ` : `
+            <div class="bg-yellow-100 border border-yellow-300 rounded-xl p-4 text-yellow-800">
+              <div class="text-center">
+                <i class="fas fa-clock text-2xl mb-2"></i>
+                <div class="font-bold">라이어 조의 정답 제출을 기다려주세요...</div>
+              </div>
+            </div>
+          `}
+        </div>
+      `;
+      
+      if (isUserLiar) {
+        document.getElementById("liarAnsBtn").onclick = ()=>{
+          const ans = document.getElementById("liarAnsInput").value.trim();
+          if (!ans) return alert("제시어를 입력하세요");
+          
+          const success = (ans === state.selectedWord);
+          
+          el.innerHTML += `
+            <div class="mt-6 ${success ? 'bg-green-100 border-green-300 text-green-800' : 'bg-red-100 border-red-300 text-red-800'} border-2 rounded-xl p-4">
+              <div class="text-center">
+                <i class="fas fa-${success ? 'check' : 'times'} text-2xl mb-2"></i>
+                <div class="font-bold">
+                  ${success ? "라이어 성공! +100점, 다른 조 -50점" : "라이어 실패! 라이어 조 -50점, 나머지 +100점"}
+                </div>
+              </div>
+            </div>
+            <button class="w-full btn-primary text-white font-bold py-4 px-6 rounded-xl text-lg transition-all duration-200 hover:scale-105 mt-4" id="toScoreBtn">
+              <i class="fas fa-chart-line mr-2"></i>점수 화면으로
+            </button>
+          `;
+          
+          if (success) {
+            state.teams[state.liarTeam].score += 100;
+            for (let i=0;i<state.teams.length;i++) {
+              if (i!==state.liarTeam) state.teams[i].score -= 50;
+            }
+          } else {
+            state.teams[state.liarTeam].score -= 50;
+            for (let i=0;i<state.teams.length;i++) {
+              if (i!==state.liarTeam) state.teams[i].score += 100;
+            }
+          }
+          
+          document.getElementById("toScoreBtn").onclick = ()=>{
+            state.step = "score";
+            render();
+          };
+        };
+      }
+    }
+
+    function renderScore(el) {
+      el.innerHTML = `
+        <div class="text-center mb-8">
+          <div class="gradient-bg text-white rounded-2xl p-6 mb-6">
+            <i class="fas fa-chart-line text-3xl mb-3"></i>
+            <h1 class="text-2xl font-bold">점수 집계</h1>
+          </div>
+        </div>
+        
+        <div class="space-y-6">
+          <div class="bg-gray-50 rounded-xl p-4">
+            <div class="space-y-3">
+              ${state.teams.map((t,i)=>`
+                <div class="flex items-center justify-between p-3 bg-white rounded-lg ${i===state.liarTeam ? 'border-2 border-yellow-400' : ''}">
+                  <div class="flex items-center">
+                    <i class="fas fa-users mr-3 text-blue-500"></i>
+                    <span class="font-medium">${t.name}</span>
+                    ${i===state.liarTeam ? '<i class="fas fa-user-secret ml-2 text-yellow-500"></i>' : ''}
+                  </div>
+                  <span class="font-bold text-lg ${t.score >= 0 ? 'text-green-600' : 'text-red-600'}">${t.score}점</span>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+          
+          <button class="w-full btn-primary text-white font-bold py-4 px-6 rounded-xl text-lg transition-all duration-200 hover:scale-105" id="nextRoundBtn">
+            <i class="fas fa-${state.round===1 ? 'play' : 'trophy'} mr-2"></i>
+            ${state.round===1 ? '2라운드 시작' : '최종 결과 확인'}
+          </button>
+        </div>
+      `;
+      
+      document.getElementById("nextRoundBtn").onclick = ()=>{
+        if (state.round === 1) {
+          state.round = 2;
+          state.step = "voteCategory";
+          state.votedCategory = "";
+          render();
+        } else {
+          state.step = "result";
+          render();
+        }
+      }
+    }
+
+    function renderResult(el) {
+      const sorted = [...state.teams].map((t,i)=>({...t, idx:i})).sort((a,b)=>b.score-a.score);
+      
+      el.innerHTML = `
+        <div class="text-center mb-8">
+          <div class="gradient-bg text-white rounded-2xl p-6 mb-6">
+            <i class="fas fa-trophy text-3xl mb-3"></i>
+            <h1 class="text-2xl font-bold">최종 결과</h1>
+          </div>
+        </div>
+        
+        <div class="space-y-6">
+          <div class="bg-gray-50 rounded-xl p-4">
+            <div class="font-semibold mb-3 flex items-center">
+              <i class="fas fa-medal mr-2"></i>조별 점수/순위
+            </div>
+            <div class="space-y-3">
+              ${sorted.map((t,rank)=>`
+                <div class="flex items-center justify-between p-3 bg-white rounded-lg ${rank===0 ? 'border-2 border-yellow-400 bg-yellow-50' : ''}">
+                  <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center mr-3 ${rank < 3 ? 'bg-yellow-500 text-white' : 'bg-gray-200 text-gray-600'} font-bold">
+                      ${rank + 1}
+                    </div>
+                    <span class="font-medium">${t.name}</span>
+                    ${rank === 0 ? '<i class="fas fa-crown ml-2 text-yellow-500"></i>' : ''}
+                  </div>
+                  <span class="font-bold text-lg ${t.score >= 0 ? 'text-green-600' : 'text-red-600'}">${t.score}점</span>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+          
+          <button class="w-full btn-primary text-white font-bold py-4 px-6 rounded-xl text-lg transition-all duration-200 hover:scale-105" onclick="location.reload()">
+            <i class="fas fa-redo mr-2"></i>다시 시작
+          </button>
+        </div>
+      `;
+    }
+
+    // 최초 화면 렌더링
+    render();
+  </script>
+</body>
+</html>
